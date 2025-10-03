@@ -1,9 +1,7 @@
-// lib/firebase.ts
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// ⚠️ Rellena con tus datos de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyB8zd4EOEIKJWx4C55tqS6xHisoFKmIVP8",
   authDomain: "dianastuff-e8911.firebaseapp.com",
@@ -17,8 +15,5 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Autenticación
 export const auth = getAuth(app);
-
-// Firestore (para guardar perfiles, opcional)
 export const db = getFirestore(app);

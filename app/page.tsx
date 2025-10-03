@@ -1,8 +1,7 @@
 import { ProfileForm } from "@/components/profile-form"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import RegisterForm from "@/components/register-form"
-import LoginForm from "@/components/login-form"
+import AuthForm from "@/components/auth-form"
 
 export default function Home() {
   return (
@@ -26,15 +25,7 @@ export default function Home() {
               Comparte tu experiencia, habilidades y logros con el mundo profesional
             </p>
           </div>
-
-          {/* Formulario de Perfil */}
-          <ProfileForm />
-
-          {/* Autenticación */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <RegisterForm />
-            <LoginForm />
-          </div>
+          <AuthForm />
         </div>
       </main>
     </div>
