@@ -1,65 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { ProfileView } from "@/components/profile-view";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Button } from "@/components/ui/button";
-import { ProfileForm } from "@/components/profile-form";
+import { useRouter } from "next/navigation";
 
-interface UserData {
-  name: string;
-  email: string;
-  title: string;
-  createdAt: any;
-}
-
-export default function UserProfilePage() {
-  const { uid } = useParams();
+export default function ProfilePage() {
+  const [profileData, setProfileData] = useState<any>(null);
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    // Verificar si el usuario autenticado coincide con el uid de la URL
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.uid !== uid) {
-      router.push("/"); // Redirige si no coincide
-      return;
-    }
+    const fetchProfile = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          router.push("/"); // si no hay usuario autenticado, redirige
+          return;
+        }
 
-    // Obtener datos del usuario desde Firestore
-    const fetchUserData = async () => {
-      const docRef = doc(db, "users", uid!);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setUserData(docSnap.data() as UserData);
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProfileData(docSnap.data());
+        } else {
+          console.log("No existe el perfil del usuario");
+        }
+      } catch (error) {
+        console.error("Error al obtener perfil:", error);
       }
-      setLoading(false);
     };
 
-    fetchUserData();
-  }, [uid, router]);
-
-  if (loading) return <p className="text-center mt-12">Cargando perfil...</p>;
-
-  if (showForm) {
-    // Mostrar formulario de perfil para actualizar información
-    return <ProfileForm />;
-  }
+    fetchProfile();
+  }, [router]);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-3xl mx-auto bg-card p-8 rounded-lg shadow">
-        <h1 className="text-3xl font-bold mb-4">{userData?.name}</h1>
-        <p className="text-lg text-muted-foreground mb-2">{userData?.title}</p>
-        <p className="text-sm text-muted-foreground mb-6">Email: {userData?.email}</p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/">
+            <h1 className="text-2xl font-bold text-foreground hover:text-accent transition-colors">
+              ProNetwork
+            </h1>
+          </Link>
+          <div className="flex gap-2">
+            <Link href="/profile-form">
+              <Button>Editar Mi Perfil</Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline">Volver</Button>
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        {/* Botón para editar perfil */}
-        <Button onClick={() => setShowForm(true)}>Editar / Completar Perfil</Button>
-      </div>
+      <main className="container mx-auto px-4 py-8">
+        {profileData ? (
+          <ProfileView profileData={profileData} />
+        ) : (
+          <p>Cargando perfil...</p>
+        )}
+      </main>
     </div>
   );
 }

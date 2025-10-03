@@ -107,7 +107,7 @@ export function ProfileView({ profileData }: { profileData: ProfileData | null }
       </Card>
 
       {/* Experience Section */}
-      {profile.experiences.length > 0 && (
+      {profile.experiences?.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -133,7 +133,7 @@ export function ProfileView({ profileData }: { profileData: ProfileData | null }
       )}
 
       {/* Education Section */}
-      {profile.education.length > 0 && (
+      {profile.education?.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export function ProfileView({ profileData }: { profileData: ProfileData | null }
       )}
 
       {/* Skills Section */}
-      {profile.skills.length > 0 && (
+      {profile.skills?.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Habilidades</CardTitle>

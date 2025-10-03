@@ -9,9 +9,6 @@ export default function Home() {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">ProNetwork</h1>
-          <Link href="/profile/demo">
-            <Button variant="outline">Ver Perfil Demo</Button>
-          </Link>
         </div>
       </header>
 
