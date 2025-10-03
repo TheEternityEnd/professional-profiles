@@ -4,9 +4,11 @@ import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";  
 
 export default function AuthForm() {
   const [isRegister, setIsRegister] = useState(true); // por defecto: registro
+  const router = useRouter();  // Hook de navegación
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,35 +24,48 @@ export default function AuthForm() {
     e.preventDefault();
 
     try {
-      if (isRegister) {
-        // 1. Crear usuario en Firebase Auth
+        if (isRegister) {
+        // Crear usuario en Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
+            auth,
+            formData.email,
+            formData.password
         );
 
         const user = userCredential.user;
 
-        // 2. Guardar info en Firestore bajo el UID del usuario
+        // Guardar info en Firestore bajo el UID
         await setDoc(doc(db, "users", user.uid), {
-          name: formData.name,
-          email: formData.email,
-          title: formData.title,
-          createdAt: new Date(),
+            name: formData.name,
+            email: formData.email,
+            title: formData.title,
+            createdAt: new Date(),
         });
 
-        alert("✅ Usuario registrado y datos guardados en Firestore");
-      } else {
-        await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        alert("✅ Sesión iniciada");
-      }
+        // 🔹 Redirigir a /profile/[uid]
+        router.push(`/profile/${user.uid}`);
 
-      setFormData({ name: "", email: "", password: "", title: "" });
+        } else {
+        // Login
+        const userCredential = await signInWithEmailAndPassword(
+            auth,
+            formData.email,
+            formData.password
+        );
+
+        const user = userCredential.user;
+
+        // 🔹 Redirigir a /profile/[uid]
+        router.push(`/profile/${user.uid}`);
+        }
+
+        // Limpiar formulario
+        setFormData({ name: "", email: "", password: "", title: "" });
+
     } catch (error: any) {
-      alert("❌ Error: " + error.message);
+        alert("❌ Error: " + error.message);
     }
-  };
+    };
 
   return (
     <div className="max-w-md mx-auto border p-6 rounded-lg shadow">

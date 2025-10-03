@@ -1,111 +1,127 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { PlusCircle, X } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlusCircle, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface Experience {
-  id: string
-  title: string
-  company: string
-  startDate: string
-  endDate: string
-  description: string
+  id: string;
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
 }
 
 interface Education {
-  id: string
-  degree: string
-  institution: string
-  year: string
+  id: string;
+  degree: string;
+  institution: string;
+  year: string;
 }
 
 export function ProfileForm() {
-  const router = useRouter()
-  const [name, setName] = useState("")
-  const [headline, setHeadline] = useState("")
-  const [about, setAbout] = useState("")
-  const [location, setLocation] = useState("")
-  const [experiences, setExperiences] = useState<Experience[]>([])
-  const [education, setEducation] = useState<Education[]>([])
-  const [skills, setSkills] = useState<string[]>([])
-  const [currentSkill, setCurrentSkill] = useState("")
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [about, setAbout] = useState("");
+  const [location, setLocation] = useState("");
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [currentSkill, setCurrentSkill] = useState("");
+
+  // 🔹 Cargar datos existentes de Firestore
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const docRef = doc(db, "users", currentUser.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setName(data.name || "");
+        setHeadline(data.headline || "");
+        setAbout(data.about || "");
+        setLocation(data.location || "");
+        setExperiences(data.experiences || []);
+        setEducation(data.education || []);
+        setSkills(data.skills || []);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const addExperience = () => {
     setExperiences([
       ...experiences,
-      {
-        id: Date.now().toString(),
-        title: "",
-        company: "",
-        startDate: "",
-        endDate: "",
-        description: "",
-      },
-    ])
-  }
+      { id: Date.now().toString(), title: "", company: "", startDate: "", endDate: "", description: "" },
+    ]);
+  };
 
-  const removeExperience = (id: string) => {
-    setExperiences(experiences.filter((exp) => exp.id !== id))
-  }
+  const removeExperience = (id: string) => setExperiences(experiences.filter((exp) => exp.id !== id));
 
   const updateExperience = (id: string, field: keyof Experience, value: string) => {
-    setExperiences(experiences.map((exp) => (exp.id === id ? { ...exp, [field]: value } : exp)))
-  }
+    setExperiences(experiences.map((exp) => (exp.id === id ? { ...exp, [field]: value } : exp)));
+  };
 
   const addEducation = () => {
-    setEducation([
-      ...education,
-      {
-        id: Date.now().toString(),
-        degree: "",
-        institution: "",
-        year: "",
-      },
-    ])
-  }
+    setEducation([...education, { id: Date.now().toString(), degree: "", institution: "", year: "" }]);
+  };
 
-  const removeEducation = (id: string) => {
-    setEducation(education.filter((edu) => edu.id !== id))
-  }
+  const removeEducation = (id: string) => setEducation(education.filter((edu) => edu.id !== id));
 
   const updateEducation = (id: string, field: keyof Education, value: string) => {
-    setEducation(education.map((edu) => (edu.id === id ? { ...edu, [field]: value } : edu)))
-  }
+    setEducation(education.map((edu) => (edu.id === id ? { ...edu, [field]: value } : edu)));
+  };
 
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
-      setSkills([...skills, currentSkill.trim()])
-      setCurrentSkill("")
+      setSkills([...skills, currentSkill.trim()]);
+      setCurrentSkill("");
     }
-  }
+  };
 
-  const removeSkill = (skill: string) => {
-    setSkills(skills.filter((s) => s !== skill))
-  }
+  const removeSkill = (skill: string) => setSkills(skills.filter((s) => s !== skill));
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Store in localStorage for demo purposes
-    const profileData = {
-      name,
-      headline,
-      about,
-      location,
-      experiences,
-      education,
-      skills,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      alert("❌ Usuario no autenticado");
+      return;
     }
-    localStorage.setItem("userProfile", JSON.stringify(profileData))
-    router.push("/profile/user")
-  }
+
+    try {
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          name,
+          headline,
+          about,
+          location,
+          experiences,
+          education,
+          skills,
+        },
+        { merge: true } // Actualiza sin borrar otros campos
+      );
+
+      router.push(`/profile/${currentUser.uid}`);
+    } catch (error: any) {
+      alert("❌ Error al guardar el perfil: " + error.message);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -155,6 +171,7 @@ export function ProfileForm() {
         </CardContent>
       </Card>
 
+      {/* Experiencia */}
       <Card>
         <CardHeader>
           <CardTitle>Experiencia Profesional</CardTitle>
@@ -163,63 +180,32 @@ export function ProfileForm() {
         <CardContent className="space-y-6">
           {experiences.map((exp) => (
             <div key={exp.id} className="space-y-4 p-4 border border-border rounded-lg relative">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={() => removeExperience(exp.id)}
-              >
+              <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeExperience(exp.id)}>
                 <X className="h-4 w-4" />
               </Button>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Cargo</Label>
-                  <Input
-                    value={exp.title}
-                    onChange={(e) => updateExperience(exp.id, "title", e.target.value)}
-                    placeholder="Desarrollador Senior"
-                  />
+                  <Input value={exp.title} onChange={(e) => updateExperience(exp.id, "title", e.target.value)} placeholder="Desarrollador Senior" />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Empresa</Label>
-                  <Input
-                    value={exp.company}
-                    onChange={(e) => updateExperience(exp.id, "company", e.target.value)}
-                    placeholder="Tech Company"
-                  />
+                  <Input value={exp.company} onChange={(e) => updateExperience(exp.id, "company", e.target.value)} placeholder="Tech Company" />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Fecha Inicio</Label>
-                  <Input
-                    type="month"
-                    value={exp.startDate}
-                    onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)}
-                  />
+                  <Input type="month" value={exp.startDate} onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)} />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Fecha Fin</Label>
-                  <Input
-                    type="month"
-                    value={exp.endDate}
-                    onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)}
-                    placeholder="Dejar vacío si es actual"
-                  />
+                  <Input type="month" value={exp.endDate} onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)} placeholder="Dejar vacío si es actual" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Descripción</Label>
-                <Textarea
-                  value={exp.description}
-                  onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
-                  placeholder="Describe tus responsabilidades y logros..."
-                  rows={3}
-                />
+                <Textarea value={exp.description} onChange={(e) => updateExperience(exp.id, "description", e.target.value)} placeholder="Describe tus responsabilidades y logros..." rows={3} />
               </div>
             </div>
           ))}
@@ -231,6 +217,7 @@ export function ProfileForm() {
         </CardContent>
       </Card>
 
+      {/* Educación */}
       <Card>
         <CardHeader>
           <CardTitle>Educación</CardTitle>
@@ -239,42 +226,22 @@ export function ProfileForm() {
         <CardContent className="space-y-6">
           {education.map((edu) => (
             <div key={edu.id} className="space-y-4 p-4 border border-border rounded-lg relative">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={() => removeEducation(edu.id)}
-              >
+              <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeEducation(edu.id)}>
                 <X className="h-4 w-4" />
               </Button>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Título</Label>
-                  <Input
-                    value={edu.degree}
-                    onChange={(e) => updateEducation(edu.id, "degree", e.target.value)}
-                    placeholder="Ingeniería Informática"
-                  />
+                  <Input value={edu.degree} onChange={(e) => updateEducation(edu.id, "degree", e.target.value)} placeholder="Ingeniería Informática" />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Institución</Label>
-                  <Input
-                    value={edu.institution}
-                    onChange={(e) => updateEducation(edu.id, "institution", e.target.value)}
-                    placeholder="Universidad Politécnica"
-                  />
+                  <Input value={edu.institution} onChange={(e) => updateEducation(edu.id, "institution", e.target.value)} placeholder="Universidad Politécnica" />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Año</Label>
-                  <Input
-                    value={edu.year}
-                    onChange={(e) => updateEducation(edu.id, "year", e.target.value)}
-                    placeholder="2020"
-                  />
+                  <Input value={edu.year} onChange={(e) => updateEducation(edu.id, "year", e.target.value)} placeholder="2020" />
                 </div>
               </div>
             </div>
@@ -287,6 +254,7 @@ export function ProfileForm() {
         </CardContent>
       </Card>
 
+      {/* Habilidades */}
       <Card>
         <CardHeader>
           <CardTitle>Habilidades</CardTitle>
@@ -300,8 +268,8 @@ export function ProfileForm() {
               placeholder="JavaScript, React, Node.js..."
               onKeyPress={(e) => {
                 if (e.key === "Enter") {
-                  e.preventDefault()
-                  addSkill()
+                  e.preventDefault();
+                  addSkill();
                 }
               }}
             />
@@ -312,10 +280,7 @@ export function ProfileForm() {
 
           <div className="flex flex-wrap gap-2">
             {skills.map((skill) => (
-              <div
-                key={skill}
-                className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
+              <div key={skill} className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm flex items-center gap-2">
                 {skill}
                 <button type="button" onClick={() => removeSkill(skill)} className="hover:text-destructive">
                   <X className="h-3 w-3" />
@@ -327,8 +292,8 @@ export function ProfileForm() {
       </Card>
 
       <Button type="submit" size="lg" className="w-full">
-        Crear Perfil
+        Guardar Perfil
       </Button>
     </form>
-  )
+  );
 }
